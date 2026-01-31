@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"syscall/js"
-//	"time"
 )
 
 var privateUniverse *Universe
@@ -44,37 +42,6 @@ func Paint(ctx js.Value,
 	}
 }
 
-type FPSCounter struct {
-	lastTimestamp float64
-	frameTimes []float64
-	limit uint8
-	writeIndex uint8
-	frameCount uint8
-}
-
-func NewFPSCounter(limit uint8) *FPSCounter {
-	return &FPSCounter {
-		limit: limit,
-		frameTimes: make([]float64, limit),
-		writeIndex: 0,
-		frameCount: 0,
-	}
-}
-
-func (f *FPSCounter) Add(dt float64) {
-	f.frameTimes[f.writeIndex] = dt
-	f.writeIndex++
-	f.writeIndex %= f.limit
-	f.frameCount++
-}
-
-func (f *FPSCounter) Avg() float64 {
-	var sum float64 = 0
-	for _, value := range f.frameTimes {
-		sum += value
-	}
-	return sum / float64(f.limit)
-}
 func PrintStatus(ctx js.Value, status string) {
 	ctx.Set("fillStyle", "red")
 	ctx.Call("fillText", status, 10, 30)
@@ -100,31 +67,24 @@ func main() {
 	
 	currentUniverse.seed()
 
-	var lastTimestamp float64
-	var fps uint8
-
-	fpsCounter := NewFPSCounter(30)
-	performance := js.Global().Get("performance")
+	performance := window.Get("performance")
+	frameTimer := NewFrameTimer(performance, 30)
 	ctx.Set("font", "40px monospace")
 	var renderFrame js.Func
 	var status string
 	
 	renderFrame = js.FuncOf(func (this js.Value, args []js.Value) interface {} {
-		start := performance.Call("now").Float()
+
+		start := frameTimer.Start()
+
 		Paint(ctx, currentUniverse, cellSize, status)
 		
 		currentUniverse.Next(nextUniverse)
 		currentUniverse, nextUniverse = nextUniverse, currentUniverse
 
-		end := performance.Call("now").Float()
-
-		fpsCounter.Add(end - start)
-		if end - lastTimestamp >= 1000 {
-			fps = fpsCounter.frameCount
-			fpsCounter.frameCount = 0
-			lastTimestamp = end
-			status = fmt.Sprintf(
-				"FPS: %d | CPU: %.2f ms", fps, fpsCounter.Avg())
+		update := frameTimer.End(start)
+		if update {
+			status = frameTimer.Status()
 		}
 
 		js.Global().Call("requestAnimationFrame", renderFrame)
