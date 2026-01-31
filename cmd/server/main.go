@@ -7,12 +7,13 @@ import (
 )
 
 func main() {
+	port := ":8080"
 	handler := http.FileServer(http.Dir("dist"))
 	http.Handle("/", loggingMiddleware(handler))
 
-	log.Printf("Server running: %s", getOutboundIp())
+	log.Printf("Server running: %s%s", getOutboundIp(), port)
 
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(port, nil)
 }
 
 func loggingMiddleware(next http.Handler) http.Handler {
