@@ -50,7 +50,20 @@ func PrintStatus(ctx js.Value, status string) {
 	ctx.Set("fillStyle", "red")
 	ctx.Call("fillText", status, 10, 30)
 }
-
+func getCellSize(window js.Value) int {
+ 	location := window.Get("location")
+    search := location.Get("search").String()
+    params := window.Get("URLSearchParams").New(search)
+    sizeParam := params.Call("get", "cellSize")
+    var cellSize int = 3
+    if !sizeParam.IsNull() {
+        val, err := strconv.Atoi(sizeParam.String())
+        if err == nil {
+            cellSize = val
+        }
+    }
+    return cellSize
+}
 func main() {
 	window := js.Global()
 	document := window.Get("document")
@@ -75,17 +88,7 @@ func main() {
 	
 	ctx := canvas.Call("getContext", "2d")
 
-	location := window.Get("location")
-	search := location.Get("search").String()
-	params := window.Get("URLSearchParams").New(search)
-	sizeParam := params.Call("get", "cellSize")
-	var cellSize int = 3
-	if !sizeParam.IsNull() {
-		val, err := strconv.Atoi(sizeParam.String())
-		if err == nil {
-			cellSize = val
-		}
-	}
+	cellSize := getCellSize(window)
 	
 	innerWidth := window.Get("innerWidth").Int()
 	innerHeight := window.Get("innerHeight").Int()
