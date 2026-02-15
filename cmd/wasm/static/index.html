@@ -3,19 +3,20 @@
 <head>
     <meta charset="utf-8">
     <title>Go Wasm Game of Life</title>
+    <style>
+    body {
+    	margin:0;
+    	padding:0;
+    }
+    #canvas {
+    	display:block;
+    	overflow:hidden;
+    }
+    </style>
     <script src="wasm_exec.js"></script>
-    <script>
-        // 1. Create the Go instance
-        const go = new Go();
-
-        // 2. Fetch and Stream the Wasm
-        WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then((result) => {
-            // 3. Run the instance
-            go.run(result.instance);
-        });
-    </script>
 </head>
 <body>
 	<canvas id="canvas"></canvas>
+    <script src="main.js"></script>
 </body>
 </html>
