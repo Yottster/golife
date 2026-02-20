@@ -20,6 +20,7 @@ wasm:
 
 # Build and Run
 serve: all
+	./dump-context.sh | termux-clipboard-set
 	@echo "Starting server..."
 	./$(SERVER_BIN)
 
