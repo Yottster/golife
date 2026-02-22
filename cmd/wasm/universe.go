@@ -5,11 +5,6 @@ import (
 	"unsafe"
 )
 
-var rulesTable []uint8
-
-func init() {
-	rulesTable = initGameOfLifeRules()
-}
 type Universe struct {
     width int
     height int
@@ -38,13 +33,65 @@ func initGameOfLifeRules() []uint8 {
 	rules[3 << 2 | 1] = 1
 	// 2 neighbours ALIVE should survive
 	rules[2 << 2 | 1] = 1
+	
 	// 3 neighbours DEAD should be born
 	rules[3 << 2 | 0] = 1
 
+	return rules
+}
+func initHighLife() []uint8 {
+	// 35 = 0b100011
+	rules := make([]uint8, 36)
+
+	// 3 neighbours ALIVE should survive
+	rules[3 << 2 | 1] = 1
+	// 2 neighbours ALIVE should survive
+	rules[2 << 2 | 1] = 1
+
+	// 3 neighbours DEAD should be born
+	rules[3 << 2 | 0] = 1
+	// 6 neighbours DEAD should be born
 	rules[6 << 2 | 0] = 1
 	return rules
 }
+func initSeed() []uint8 {
+	// 35 = 0b100011
+	rules := make([]uint8, 36)
 
+	// 2 neighbours DEAD should be born
+	rules[2 << 2 | 0] = 1
+	return rules
+}
+func initBriansBrain() []uint8 {
+	// 35 = 0b100011
+	rules := make([]uint8, 36)
+
+	// 2 neighbours DEAD should be born
+	rules[2 << 2 | 0] = 1
+
+	// all ALIVE should be dying
+	rules[1] = 2
+	rules[1 << 2 | 1] = 2
+	rules[2 << 2 | 1] = 2
+	rules[3 << 2 | 1] = 2
+	rules[4 << 2 | 1] = 2
+	rules[5 << 2 | 1] = 2
+	rules[6 << 2 | 1] = 2
+	rules[7 << 2 | 1] = 2
+	rules[8 << 2 | 1] = 2
+
+	// all DYING should die
+	rules[2] = 0
+	rules[1 << 2 | 2] = 0
+	rules[2 << 2 | 2] = 0
+	rules[3 << 2 | 2] = 0
+	rules[4 << 2 | 2] = 0
+	rules[5 << 2 | 2] = 0
+	rules[6 << 2 | 2] = 0
+	rules[7 << 2 | 2] = 0
+	rules[8 << 2 | 2] = 0
+	return rules
+}
 func (u *Universe) syncEdges() {
 	w := u.width
 	h := u.height
@@ -92,14 +139,14 @@ func (u *Universe) Next(target *Universe) (*Universe, *Universe) {
         tp := dstPtr + offset + 1
 
         leftCol := uint8(
-        	*(*uint8)(unsafe.Pointer(pA)) +
-        	*(*uint8)(unsafe.Pointer(pM)) +
-        	*(*uint8)(unsafe.Pointer(pB)))
+        	*(*uint8)(unsafe.Pointer(pA)) & 1 +
+        	*(*uint8)(unsafe.Pointer(pM)) & 1 +
+        	*(*uint8)(unsafe.Pointer(pB)) & 1)
 
         midCol := uint8(
-        	*(*uint8)(unsafe.Pointer(pA + 1)) +
-        	*(*uint8)(unsafe.Pointer(pM + 1)) +
-        	*(*uint8)(unsafe.Pointer(pB + 1)))
+        	*(*uint8)(unsafe.Pointer(pA + 1)) & 1 +
+        	*(*uint8)(unsafe.Pointer(pM + 1)) & 1 +
+        	*(*uint8)(unsafe.Pointer(pB + 1)) & 1)
 
         pA += 2
         pM += 2
@@ -107,14 +154,14 @@ func (u *Universe) Next(target *Universe) (*Universe, *Universe) {
         
         for x := 1; x <= u.width; x++ {
 			rightCol := uint8(
-				*(*uint8)(unsafe.Pointer(pA)) +
-				*(*uint8)(unsafe.Pointer(pM)) +
-				*(*uint8)(unsafe.Pointer(pB)))
+				*(*uint8)(unsafe.Pointer(pA)) & 1 +
+				*(*uint8)(unsafe.Pointer(pM)) & 1 +
+				*(*uint8)(unsafe.Pointer(pB)) & 1)
 			total := leftCol + midCol + rightCol
 			self := *(*uint8)(unsafe.Pointer(pM - 1))
 
-			*(*uint8)(unsafe.Pointer(tp)) = ruleCheck(
-				total - self, self)
+			*(*uint8)(unsafe.Pointer(tp)) =
+				rulesTable[(total - self & 1) << 2 | self]
 
 			leftCol = midCol
 			midCol = rightCol

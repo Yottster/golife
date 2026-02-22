@@ -8,7 +8,6 @@ type Color struct {
 }
 
 func (c Color) String() string {
-    // TODO: A needs to be normalized
     return fmt.Sprintf("rgba(%d, %d, %d, %f)",
         c.R, c.G, c.B, float64(c.A)/255.0)
 }

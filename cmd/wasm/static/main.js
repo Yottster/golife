@@ -1,4 +1,3 @@
-
 import { RollingAverage } from './stats.js'
 const go = new Go();
 
@@ -76,6 +75,9 @@ function renderFrame(ts) {
 		
 		window.gol.lastStatusUpdate = ts;
 	}
+	if (go.mem.buffer.byteLength == 0) {
+		setMemoryView(window.gol.ptr);
+	}
 	updateCanvas()
 
 	performance.mark("end-frame");
@@ -100,6 +102,7 @@ function setMemoryView(ptr) {
 		memoryView, dims.width, dims.height
 	);
 
+	gol.ptr = ptr;
 	gol.imageData = imageData;
 }
 
@@ -150,11 +153,12 @@ async function init() {
 	
 	gol.writeCtx = hiddenCanvas.getContext("2d");
 
-	// Exposed functions (move to gol.fn?)
-	gol.setMemoryView = setMemoryView;
-    gol.renderFrame = renderFrame;
-    gol.addGoTimings = addGoTimings;
-    // 5. Start WebAssembly (await the fetch/instantiate)
+	// Exposed functions
+	const fn = gol.fn = {};
+	fn.setMemoryView = setMemoryView;
+    fn.renderFrame = renderFrame;
+    fn.addGoTimings = addGoTimings;
+
     const result = await WebAssembly.instantiateStreaming(
         fetch("main.wasm"), go.importObject);
         
