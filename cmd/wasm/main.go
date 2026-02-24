@@ -16,18 +16,21 @@ func Render(u *Universe, dst []uint32, colors []uint32) {
 	
 	step := unsafe.Sizeof(uint32(0))
 
+	var c uint32
+	rowOffset := rowWidth + 1
+	cellPtr := cellsPtr + rowOffset
 	for y := 1; y <= u.height; y++ {
-		rowOffset := uintptr(y) * rowWidth + 1
-		cellPtr := cellsPtr + rowOffset
 
 		for x := 1; x <= u.width; x++ {
-			cell := *(*uint8)(unsafe.Pointer(cellPtr))
-			c := *(*uint32)(unsafe.Pointer(
-				colorPtr + uintptr(cell) * step))
+			c = *(*uint32)(unsafe.Pointer(colorPtr + 
+				uintptr(
+					*(*uint8)(unsafe.Pointer(cellPtr))) * 
+					step))
 			*(*uint32)(unsafe.Pointer(dstPtr)) = c
 			cellPtr++
 			dstPtr += step
 		}
+		cellPtr += 2
 	}
 }
 func themeChoice(choice int) []Color {
