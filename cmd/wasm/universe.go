@@ -54,7 +54,7 @@ func initHighLife() []uint8 {
 	rules[6 << 2 | 0] = 1
 	return rules
 }
-func initSeed() []uint8 {
+func initSeeds() []uint8 {
 	// 35 = 0b100011
 	rules := make([]uint8, 36)
 
@@ -92,6 +92,45 @@ func initBriansBrain() []uint8 {
 	rules[8 << 2 | 2] = 0
 	return rules
 }
+
+func initStarWars() []uint8 {
+	rules := make([]uint8, 36)
+	// B2/S345/C4
+	rules[2 << 2 | 0] = 1
+
+	rules[1] = 2
+	rules[1 << 2 | 1] = 2
+	rules[2 << 2 | 1] = 2
+	
+	rules[3 << 2 | 1] = 1
+	rules[4 << 2 | 1] = 1
+	rules[5 << 2 | 1] = 1
+
+	rules[6 << 2 | 1] = 2
+	rules[7 << 2 | 1] = 2
+	rules[8 << 2 | 1] = 2
+
+	rules[2] = 3
+	rules[1 << 2 | 2] = 3
+	rules[2 << 2 | 2] = 3
+	rules[3 << 2 | 2] = 3
+	rules[4 << 2 | 2] = 3
+	rules[5 << 2 | 2] = 3
+	rules[6 << 2 | 2] = 3
+	rules[7 << 2 | 2] = 3
+	rules[8 << 2 | 2] = 3
+
+	rules[3] = 0
+	rules[1 << 2 | 3] = 0
+	rules[2 << 2 | 3] = 0
+	rules[3 << 2 | 3] = 0
+	rules[4 << 2 | 3] = 0
+	rules[5 << 2 | 3] = 0
+	rules[6 << 2 | 3] = 0
+	rules[7 << 2 | 3] = 0
+	rules[8 << 2 | 3] = 0
+	return rules
+}
 func (u *Universe) syncEdges() {
 	w := u.width
 	h := u.height
@@ -122,46 +161,60 @@ func (u *Universe) syncEdges() {
 func ruleCheck(neighbours uint8, cell uint8) uint8 {
 	return rulesTable[neighbours << 2 | cell]
 }
-
+func isAlive(cell uint8) uint8 {
+	r := cell & 1
+	l := cell >> 1
+	return r &^ l
+}
 func (u *Universe) Next(target *Universe) (*Universe, *Universe) {
 	u.syncEdges()
 	srcPtr := uintptr(unsafe.Pointer(&u.cells[0]))
 	dstPtr := uintptr(unsafe.Pointer(&target.cells[0]))
     w := uintptr(u.width + 2)
 
+	var offset, pA, pM, pB, tp uintptr
+	var vA, vM, vB, self uint8
+	var leftCol, midCol, rightCol, total uint8
     for y := 1; y <= u.height; y++ {
 
-    	offset := uintptr(y) * w
-        pA := srcPtr + offset - w
-        pM := srcPtr + offset
-        pB := srcPtr + offset + w
+    	offset = uintptr(y) * w
+        pA = srcPtr + offset - w
+        pM = srcPtr + offset
+        pB = srcPtr + offset + w
         
-        tp := dstPtr + offset + 1
+        tp = dstPtr + offset + 1
 
-        leftCol := uint8(
-        	*(*uint8)(unsafe.Pointer(pA)) & 1 +
-        	*(*uint8)(unsafe.Pointer(pM)) & 1 +
-        	*(*uint8)(unsafe.Pointer(pB)) & 1)
+		vA = *(*uint8)(unsafe.Pointer(pA))
+		vM = *(*uint8)(unsafe.Pointer(pM))
+		vB = *(*uint8)(unsafe.Pointer(pB))
+        leftCol = (vA & 1) &^ (vA >> 1) +
+        	(vM & 1) &^ (vM >> 1) +
+        	(vB & 1) &^ (vB >> 1)
 
-        midCol := uint8(
-        	*(*uint8)(unsafe.Pointer(pA + 1)) & 1 +
-        	*(*uint8)(unsafe.Pointer(pM + 1)) & 1 +
-        	*(*uint8)(unsafe.Pointer(pB + 1)) & 1)
+		vA = *(*uint8)(unsafe.Pointer(pA + 1))
+		vM = *(*uint8)(unsafe.Pointer(pM + 1))
+		vB = *(*uint8)(unsafe.Pointer(pB + 1))
+        midCol = (vA & 1) &^ (vA >> 1) +
+        	(vM & 1) &^ (vM >> 1) +
+        	(vB & 1) &^ (vB >> 1)
 
         pA += 2
         pM += 2
         pB += 2
         
         for x := 1; x <= u.width; x++ {
-			rightCol := uint8(
-				*(*uint8)(unsafe.Pointer(pA)) & 1 +
-				*(*uint8)(unsafe.Pointer(pM)) & 1 +
-				*(*uint8)(unsafe.Pointer(pB)) & 1)
-			total := leftCol + midCol + rightCol
-			self := *(*uint8)(unsafe.Pointer(pM - 1))
+        	// self is previous vM
+        	self = vM
+        	vA = *(*uint8)(unsafe.Pointer(pA))
+        	vM = *(*uint8)(unsafe.Pointer(pM))
+        	vB = *(*uint8)(unsafe.Pointer(pB))
+			rightCol = (vA & 1) &^ (vA >> 1) +
+				(vM & 1) &^ (vM >> 1) +
+				(vB & 1) &^ (vB >> 1)
+			total = leftCol + midCol + rightCol
 
 			*(*uint8)(unsafe.Pointer(tp)) =
-				rulesTable[(total - self & 1) << 2 | self]
+				rulesTable[(total - (self & 1) &^ (self >> 1)) << 2 | self]
 
 			leftCol = midCol
 			midCol = rightCol

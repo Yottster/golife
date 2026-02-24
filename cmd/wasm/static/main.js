@@ -1,11 +1,16 @@
 import { RollingAverage } from './stats.js'
+
+window.onerror = function(message, source, lineno) {
+    alert("JS Error: " + message + " at line " + lineno);
+};
+
 const go = new Go();
 
 window.gol = {
 	status: [""],
 	lastStatusUpdate: 0,
 	dims: {
-		cellSize: getCellSize(),
+		cellSize: 10,
 		width: 0,
 		height: 0
 	},
@@ -21,6 +26,10 @@ window.gol = {
 
 function updateCanvas() {
 	const gol = window.gol;
+
+	if (gol.imageData.data.buffer.byteLength == 0) {
+        setMemoryView(gol.ptr);
+    }
 
 	gol.writeCtx.putImageData(gol.imageData, 0, 0);
 	gol.ctx.drawImage(gol.hiddenCanvas, 0, 0, 
@@ -50,20 +59,22 @@ function addGoTimings(next, render) {
 	window.gol.t.render.add(render);
 }
 
-function getCellSize() {
-	let search = window.location.search;
-	let params = new URLSearchParams(search);
-	let sizeParam = params.get("cellSize") ?? 3;
-	return int(sizeParam);
+function getQueryParams() {
+	const search = window.location.search;
+	const params = new URLSearchParams(search);
+	const sizeParam = params.get("cellSize") ?? 3;
+	const mode = params.get("mode") ?? 0;
+	
+	return {'cellSize':int(sizeParam), 'mode':int(mode)};
 }
 function int(number) {
 	return +number | 0;
 }
 
 function renderFrame(ts) {
-	performance.mark("start-frame");
 	tick();
-	performance.mark("update-canvas");
+	const updateCanvasStart = performance.now();
+	window.gol.t.tick.add(updateCanvasStart - ts);
 	if (ts - window.gol.lastStatusUpdate > 500) {
 		updateStatus([
 			`Frame: ${window.gol.t.frame.average().toFixed(2)}ms`,
@@ -75,16 +86,13 @@ function renderFrame(ts) {
 		
 		window.gol.lastStatusUpdate = ts;
 	}
-	if (go.mem.buffer.byteLength == 0) {
-		setMemoryView(window.gol.ptr);
-	}
-	updateCanvas()
 
-	performance.mark("end-frame");
+	updateCanvas();
 
-	performance.measure("tick", "start-frame", "update-canvas");
-	performance.measure("paint", "update-canvas", "end-frame");
-	performance.measure("frame", "start-frame", "end-frame");
+	const endFrame = performance.now();
+	
+	window.gol.t.paint.add(endFrame - updateCanvasStart);
+	window.gol.t.frame.add(endFrame - ts);
 
 	return requestAnimationFrame(renderFrame);
 }
@@ -106,11 +114,11 @@ function setMemoryView(ptr) {
 	gol.imageData = imageData;
 }
 
-function updateDimensions(canvas, hiddenCanvas) {
+function updateDimensions(canvas, hiddenCanvas, cellSize) {
 	canvas.width = window.innerWidth;
 	canvas.height = window.innerHeight;
 
-	let cs = getCellSize();
+	let cs = cellSize;
 
 	hiddenCanvas.width = int(canvas.width / cs)
 	hiddenCanvas.height = int(canvas.height / cs)	
@@ -122,17 +130,6 @@ function updateDimensions(canvas, hiddenCanvas) {
 	}
 }
 
-
-const observer = new PerformanceObserver((list) => {
-	const entries = list.getEntries();
-
-	for (const entry of entries) {
-		window.gol.t[entry.name].add(entry.duration);
-	}
-});
-
-observer.observe({ 'entryTypes': ['measure'] });
-
 async function init() {
 	const gol = window.gol;
     // 1. Get DOM elements (canvas, hiddenCanvas)
@@ -141,8 +138,8 @@ async function init() {
 	let hiddenCanvas = window.document.createElement("canvas");
 	hiddenCanvas.id = "hidden";
 	gol.hiddenCanvas = hiddenCanvas;
-	gol.dims = updateDimensions(canvas, hiddenCanvas);
-    // 2. Setup Contexts (ctx, writeCtx)
+	let {cellSize, mode} = getQueryParams();
+	gol.dims = updateDimensions(canvas, hiddenCanvas, cellSize);
     
 	let ctx = canvas.getContext("2d");
 	ctx.font = "48px 'Roboto Mono', 'Source Code Pro', Consolas, monospace";
@@ -165,6 +162,10 @@ async function init() {
     go.mem = result.instance.exports.mem;
 
     go.run(result.instance);
+
+    fn.setMode(mode)
+
+    fn.renderFrame();
 }
 
 init();

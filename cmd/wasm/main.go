@@ -35,18 +35,28 @@ func themeChoice(choice int) []Color {
 		[]Color{
 			// Amber
 			Color{ 0, 0, 0, 0xFF },
-			Color{ 0xFF, 0xEA, 0x00, 0xFF },
-			Color{ 0x8B, 0x00, 0x00, 0xFF }},
+			Color{ 0xFF, 0xEA, 0, 0xFF },
+			Color{ 0xFF, 0x66, 0, 0xFF },
+			Color{ 0x8B, 0, 0, 0xFF }},
 		[]Color{
 			// CRT Phosphor
 			Color{ 0, 0, 0, 0xFF },
-			Color{ 0x00, 0xFF, 0x00, 0xFF },
-			Color{ 0x00, 0x33, 0x00, 0xFF }},
+			Color{ 0, 0xFF, 0, 0xFF },
+			Color{ 0, 0x88, 0, 0xFF },
+			Color{ 0, 0x33, 0, 0xFF }},
 		[]Color{
 			// Deep Sea
 			Color{ 0, 0, 0, 0xFF },
 			Color{ 0, 0xFF, 0xFF, 0xFF },
+			Color{ 0, 0x66, 0xFF, 0xFF },
 			Color{ 0x4B, 0, 0x82, 0xFF }},
+		[]Color{
+			// star wars
+			Color{ 0, 0, 0, 0xFF},
+			Color{ 0, 0xFF, 0xFF, 0xFF},
+			Color{ 0xFF, 0, 0x55, 0xFF},
+			Color{ 0x33, 0, 0x33, 0xFF},
+		},
 	}
 	return choices[choice % len(choices)]
 }
@@ -60,9 +70,7 @@ func main() {
 	body := document.Get("body")
 	bodyStyle := body.Get("style")
 
-	rulesTable = initBriansBrain()
-
-	theme := themeChoice(2)
+	theme := themeChoice(3)
 	bodyStyle.Set("background", theme[0].Solid().String())
 
     colors := make([]uint32, len(theme))
@@ -94,9 +102,10 @@ func main() {
 	var tick js.Func = js.FuncOf(func (this js.Value, args []js.Value) interface {} {
 		t0 := time.Now()
 		Render(currentUniverse, u32Buffer, colors)
-		renderTime := time.Since(t0).Microseconds()
-
+	
 		t1 := time.Now()
+		renderTime := t1.Sub(t0).Microseconds()
+
 		currentUniverse, nextUniverse =
 			currentUniverse.Next(nextUniverse)
 		nextTime := time.Since(t1).Microseconds()
@@ -106,7 +115,23 @@ func main() {
 	})
 	js.Global().Set("tick", tick)
 
-	gameObject.Get("fn").Call("renderFrame")
+	var setMode js.Func = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		mode := args[0].Int()
+
+		rulesets := []func () []uint8 {
+			initGameOfLifeRules,
+			initHighLife,
+			initSeeds,
+			initBriansBrain,
+			initStarWars,
+		}
+
+		if mode >= 0 && mode < len(rulesets) {
+			rulesTable = rulesets[mode]()
+		}
+		return nil
+	})
+	gameObject.Get("fn").Set("setMode", setMode)
 
 	select {}
 }
