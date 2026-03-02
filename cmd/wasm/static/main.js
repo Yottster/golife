@@ -1,4 +1,5 @@
-import { RollingAverage } from './stats.js'
+import { ExponentialAverage } from './stats.js'
+import { syncParamsToUrl } from './urlhandler.js'
 
 window.onerror = function(message, source, lineno) {
     alert("JS Error: " + message + " at line " + lineno);
@@ -16,11 +17,11 @@ window.gol = {
 	},
 	buffer: null,
 	t: {
-		frame: new RollingAverage(60),
-		tick: new RollingAverage(60),
-		paint: new RollingAverage(60),
-		next: new RollingAverage(60),
-		render: new RollingAverage(60)
+		frame: new ExponentialAverage(),
+		tick: new ExponentialAverage(),
+		paint: new ExponentialAverage(),
+		next: new ExponentialAverage(),
+		render: new ExponentialAverage()
 	}
 }
 
@@ -39,14 +40,10 @@ function updateCanvas() {
 	drawStatusBlock(gol.ctx, gol.status, 16, 64, 45);
 }
 function drawStatusBlock(ctx, lines, x, y, lineHeight) {
-    ctx.save();
-    ctx.textBaseline = "top"; 
-    ctx.textAlign = "start";
     
     lines.forEach((line, i) => {
         ctx.fillText(line, x, y + (i * lineHeight));
     });
-    ctx.restore();
 }
 
 
@@ -75,17 +72,6 @@ function renderFrame(ts) {
 	tick();
 	const updateCanvasStart = performance.now();
 	window.gol.t.tick.add(updateCanvasStart - ts);
-	if (ts - window.gol.lastStatusUpdate > 500) {
-		updateStatus([
-			`Frame: ${window.gol.t.frame.average().toFixed(2)}ms`,
-			`├─Tick: ${window.gol.t.tick.average().toFixed(2)}ms`,
-			`│ ├─Next:   ${window.gol.t.next.average().toFixed(0)}µs`,
-			`│ └─Render: ${window.gol.t.render.average().toFixed(0)}µs`,
-			`└─Paint: ${window.gol.t.paint.average().toFixed(2)}ms`
-		]);
-		
-		window.gol.lastStatusUpdate = ts;
-	}
 
 	updateCanvas();
 
@@ -93,6 +79,17 @@ function renderFrame(ts) {
 	
 	window.gol.t.paint.add(endFrame - updateCanvasStart);
 	window.gol.t.frame.add(endFrame - ts);
+
+	if (ts - window.gol.lastStatusUpdate > 300) {
+		updateStatus([
+			`Frame: ${window.gol.t.frame.average().toFixed(2)}ms`,
+			`├─Tick: ${window.gol.t.tick.average().toFixed(2)}ms`,
+			`│ ├─Next:   ${window.gol.t.next.average().toFixed(0)}µs`,
+			`│ └─Render: ${window.gol.t.render.average().toFixed(0)}µs`,
+			`└─Paint: ${window.gol.t.paint.average().toFixed(2)}ms`
+		]);
+		window.gol.lastStatusUpdate = ts;
+	}
 
 	return requestAnimationFrame(renderFrame);
 }
@@ -130,6 +127,20 @@ function updateDimensions(canvas, hiddenCanvas, cellSize) {
 	}
 }
 
+function setupUiOverlay() {
+	const modeSelect = window.document.getElementById("mode-select");
+	modeSelect.addEventListener("change", (e) => {
+		window.gol.fn.setMode(parseInt(e.target.value, 10));
+		syncParamsToUrl({ mode: e.target.value });
+	});
+
+	const resetButton = window.document.getElementById("reset-btn");
+	resetButton.addEventListener("click", () => {
+		location.reload();
+	})
+	
+}
+
 async function init() {
 	const gol = window.gol;
     // 1. Get DOM elements (canvas, hiddenCanvas)
@@ -150,6 +161,8 @@ async function init() {
 	
 	gol.writeCtx = hiddenCanvas.getContext("2d");
 
+	setupUiOverlay();
+
 	// Exposed functions
 	const fn = gol.fn = {};
 	fn.setMemoryView = setMemoryView;
@@ -165,7 +178,7 @@ async function init() {
 
     fn.setMode(mode)
 
-    fn.renderFrame();
+    requestAnimationFrame(fn.renderFrame);
 }
 
 init();

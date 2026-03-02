@@ -22,7 +22,7 @@ wasm:
 serve: all
 	./dump-context.sh | termux-clipboard-set
 	@echo "Starting server..."
-	./$(SERVER_BIN)
+	./$(SERVER_BIN) --dev
 
 # Clean up build artifacts
 clean:

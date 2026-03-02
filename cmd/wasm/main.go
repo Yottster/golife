@@ -8,25 +8,61 @@ import (
 
 func Render(u *Universe, dst []uint32, colors []uint32) {
 
+	// potential bce hint
+	if (len(colors) < 4) { return }
+
 	dstPtr := uintptr(unsafe.Pointer(&dst[0]))
-	colorPtr := uintptr(unsafe.Pointer(&colors[0]))
+	// colorPtr := uintptr(unsafe.Pointer(&colors[0]))
 
 	cellsPtr := uintptr(unsafe.Pointer(&u.cells[0]))
 	rowWidth := uintptr(u.width + 2)
 	
 	step := unsafe.Sizeof(uint32(0))
 
-	var c uint32
 	rowOffset := rowWidth + 1
 	cellPtr := cellsPtr + rowOffset
 	for y := 1; y <= u.height; y++ {
+		x := 1
+		for ; x <= u.width - 7; x+=8 {
+			chunk := *(*uint64)(unsafe.Pointer(cellPtr))
+			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[
+				uint8(chunk)]
+			dstPtr += step
 
-		for x := 1; x <= u.width; x++ {
-			c = *(*uint32)(unsafe.Pointer(colorPtr + 
-				uintptr(
-					*(*uint8)(unsafe.Pointer(cellPtr))) * 
-					step))
-			*(*uint32)(unsafe.Pointer(dstPtr)) = c
+			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[
+				uint8(chunk >> 8)]
+			dstPtr += step
+
+			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[
+				uint8(chunk >> 16)]
+			dstPtr += step
+
+			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[
+				uint8(chunk >> 24)]
+			dstPtr += step
+
+			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[
+				uint8(chunk >> 32)]
+			dstPtr += step
+
+			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[
+				uint8(chunk >> 40)]
+			dstPtr += step
+
+			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[
+				uint8(chunk >> 48)]
+			dstPtr += step
+
+			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[
+				uint8(chunk >> 56)]
+			dstPtr += step
+
+			cellPtr += 8
+		}
+		// rest
+		for ; x <= u.width; x++ {
+			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[
+				*(*uint8)(unsafe.Pointer(cellPtr))]
 			cellPtr++
 			dstPtr += step
 		}
@@ -73,7 +109,7 @@ func main() {
 	body := document.Get("body")
 	bodyStyle := body.Get("style")
 
-	theme := themeChoice(3)
+	theme := themeChoice(0)
 	bodyStyle.Set("background", theme[0].Solid().String())
 
     colors := make([]uint32, len(theme))
