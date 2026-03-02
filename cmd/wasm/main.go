@@ -12,53 +12,34 @@ func Render(u *Universe, dst []uint32, colors []uint32) {
 	if len(colors) < 4 {
 		return
 	}
+	_ = dst[:u.width*u.height]
 
-	dstPtr := uintptr(unsafe.Pointer(&dst[0]))
+	rowWidth := u.width + 2
+	dstIdx := 0
 
-	cellsPtr := uintptr(unsafe.Pointer(&u.cells[0]))
-	rowWidth := uintptr(u.width + 2)
-
-	step := unsafe.Sizeof(uint32(0))
-
-	rowOffset := rowWidth + 1
-	cellPtr := cellsPtr + rowOffset
 	for y := 1; y <= u.height; y++ {
+		rowStart := y*rowWidth + 1
 		x := 1
 		for ; x <= u.width-7; x += 8 {
-			chunk := *(*uint64)(unsafe.Pointer(cellPtr))
-			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[uint8(chunk)]
-			dstPtr += step
+			cellIdx := rowStart + x - 1
+			chunk := *(*uint64)(unsafe.Pointer(&u.cells[cellIdx]))
 
-			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[uint8(chunk>>8)]
-			dstPtr += step
-
-			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[uint8(chunk>>16)]
-			dstPtr += step
-
-			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[uint8(chunk>>24)]
-			dstPtr += step
-
-			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[uint8(chunk>>32)]
-			dstPtr += step
-
-			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[uint8(chunk>>40)]
-			dstPtr += step
-
-			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[uint8(chunk>>48)]
-			dstPtr += step
-
-			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[uint8(chunk>>56)]
-			dstPtr += step
-
-			cellPtr += 8
+			dst[dstIdx] = colors[uint8(chunk)]
+			dst[dstIdx+1] = colors[uint8(chunk>>8)]
+			dst[dstIdx+2] = colors[uint8(chunk>>16)]
+			dst[dstIdx+3] = colors[uint8(chunk>>24)]
+			dst[dstIdx+4] = colors[uint8(chunk>>32)]
+			dst[dstIdx+5] = colors[uint8(chunk>>40)]
+			dst[dstIdx+6] = colors[uint8(chunk>>48)]
+			dst[dstIdx+7] = colors[uint8(chunk>>56)]
+			dstIdx += 8
 		}
 		// rest
 		for ; x <= u.width; x++ {
-			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[*(*uint8)(unsafe.Pointer(cellPtr))]
-			cellPtr++
-			dstPtr += step
+			cellIdx := rowStart + x - 1
+			dst[dstIdx] = colors[u.cells[cellIdx]]
+			dstIdx++
 		}
-		cellPtr += 2
 	}
 }
 func themeChoice(choice int) []Color {
