@@ -9,60 +9,52 @@ import (
 func Render(u *Universe, dst []uint32, colors []uint32) {
 
 	// potential bce hint
-	if (len(colors) < 4) { return }
+	if len(colors) < 4 {
+		return
+	}
 
 	dstPtr := uintptr(unsafe.Pointer(&dst[0]))
-	// colorPtr := uintptr(unsafe.Pointer(&colors[0]))
 
 	cellsPtr := uintptr(unsafe.Pointer(&u.cells[0]))
 	rowWidth := uintptr(u.width + 2)
-	
+
 	step := unsafe.Sizeof(uint32(0))
 
 	rowOffset := rowWidth + 1
 	cellPtr := cellsPtr + rowOffset
 	for y := 1; y <= u.height; y++ {
 		x := 1
-		for ; x <= u.width - 7; x+=8 {
+		for ; x <= u.width-7; x += 8 {
 			chunk := *(*uint64)(unsafe.Pointer(cellPtr))
-			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[
-				uint8(chunk)]
+			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[uint8(chunk)]
 			dstPtr += step
 
-			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[
-				uint8(chunk >> 8)]
+			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[uint8(chunk>>8)]
 			dstPtr += step
 
-			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[
-				uint8(chunk >> 16)]
+			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[uint8(chunk>>16)]
 			dstPtr += step
 
-			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[
-				uint8(chunk >> 24)]
+			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[uint8(chunk>>24)]
 			dstPtr += step
 
-			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[
-				uint8(chunk >> 32)]
+			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[uint8(chunk>>32)]
 			dstPtr += step
 
-			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[
-				uint8(chunk >> 40)]
+			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[uint8(chunk>>40)]
 			dstPtr += step
 
-			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[
-				uint8(chunk >> 48)]
+			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[uint8(chunk>>48)]
 			dstPtr += step
 
-			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[
-				uint8(chunk >> 56)]
+			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[uint8(chunk>>56)]
 			dstPtr += step
 
 			cellPtr += 8
 		}
 		// rest
 		for ; x <= u.width; x++ {
-			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[
-				*(*uint8)(unsafe.Pointer(cellPtr))]
+			*(*uint32)(unsafe.Pointer(dstPtr)) = colors[*(*uint8)(unsafe.Pointer(cellPtr))]
 			cellPtr++
 			dstPtr += step
 		}
@@ -73,35 +65,36 @@ func themeChoice(choice int) []Color {
 	choices := [][]Color{
 		[]Color{
 			// Amber
-			Color{ 0, 0, 0, 0xFF },
-			Color{ 0xFF, 0xEA, 0, 0xFF },
-			Color{ 0xFF, 0x66, 0, 0xFF },
-			Color{ 0x8B, 0, 0, 0xFF }},
+			Color{0, 0, 0, 0xFF},
+			Color{0xFF, 0xEA, 0, 0xFF},
+			Color{0xFF, 0x66, 0, 0xFF},
+			Color{0x8B, 0, 0, 0xFF}},
 		[]Color{
 			// CRT Phosphor
-			Color{ 0, 0, 0, 0xFF },
-			Color{ 0, 0xFF, 0, 0xFF },
-			Color{ 0, 0x88, 0, 0xFF },
-			Color{ 0, 0x33, 0, 0xFF }},
+			Color{0, 0, 0, 0xFF},
+			Color{0, 0xFF, 0, 0xFF},
+			Color{0, 0x88, 0, 0xFF},
+			Color{0, 0x33, 0, 0xFF}},
 		[]Color{
 			// Deep Sea
-			Color{ 0, 0, 0, 0xFF },
-			Color{ 0, 0xFF, 0xFF, 0xFF },
-			Color{ 0, 0x66, 0xFF, 0xFF },
-			Color{ 0x4B, 0, 0x82, 0xFF }},
+			Color{0, 0, 0, 0xFF},
+			Color{0, 0xFF, 0xFF, 0xFF},
+			Color{0, 0x66, 0xFF, 0xFF},
+			Color{0x4B, 0, 0x82, 0xFF}},
 		[]Color{
 			// star wars
-			Color{ 0, 0, 0, 0xFF},
-			Color{ 0, 0xFF, 0xFF, 0xFF},
-			Color{ 0xFF, 0, 0x55, 0xFF},
-			Color{ 0x33, 0, 0x33, 0xFF},
+			Color{0, 0, 0, 0xFF},
+			Color{0, 0xFF, 0xFF, 0xFF},
+			Color{0xFF, 0, 0x55, 0xFF},
+			Color{0x33, 0, 0x33, 0xFF},
 		},
 	}
-	return choices[choice % len(choices)]
+	return choices[choice%len(choices)]
 }
 
 // TODO: We should remove this global
 var rulesTable []uint8
+
 func main() {
 	window := js.Global()
 	document := window.Get("document")
@@ -112,10 +105,10 @@ func main() {
 	theme := themeChoice(0)
 	bodyStyle.Set("background", theme[0].Solid().String())
 
-    colors := make([]uint32, len(theme))
-    for i, elem := range theme {
-    	colors[i] = elem.Packed()
-    }
+	colors := make([]uint32, len(theme))
+	for i, elem := range theme {
+		colors[i] = elem.Packed()
+	}
 
 	gameObject := window.Get("gol")
 	dims := gameObject.Get("dims")
@@ -124,13 +117,13 @@ func main() {
 	height := dims.Get("height").Int()
 
 	println(width, height)
-	
-	pixels := make([]byte, 4 * width * height)
+
+	pixels := make([]byte, 4*width*height)
 	ptr := unsafe.Pointer(&pixels[0])
-	
+
 	gameObject.Get("fn").Call("setMemoryView", uintptr(ptr))
-	u32Buffer := 
-		unsafe.Slice((*uint32)(ptr), width * height)
+	u32Buffer :=
+		unsafe.Slice((*uint32)(ptr), width*height)
 
 	nextUniverse := NewUniverse(width, height)
 	currentUniverse := NewUniverse(width, height)
@@ -138,10 +131,10 @@ func main() {
 
 	timingsCollector := gameObject.Get("fn").Get("addGoTimings")
 
-	var tick js.Func = js.FuncOf(func (this js.Value, args []js.Value) interface {} {
+	var tick js.Func = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		t0 := time.Now()
 		Render(currentUniverse, u32Buffer, colors)
-	
+
 		t1 := time.Now()
 		renderTime := t1.Sub(t0).Microseconds()
 
@@ -157,7 +150,7 @@ func main() {
 	var setMode js.Func = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		mode := args[0].Int()
 
-		rulesets := []func () []uint8 {
+		rulesets := []func() []uint8{
 			initGameOfLifeRules,
 			initHighLife,
 			initSeeds,

@@ -25,21 +25,20 @@ func main() {
 
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(
-		func( w http.ResponseWriter, r *http.Request) {
+		func(w http.ResponseWriter, r *http.Request) {
 			log.Printf("[%s] %s", r.Method, r.URL.Path)
 			next.ServeHTTP(w, r)
-	})
+		})
 }
 
 func devNoCacheMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(
-		func (w http.ResponseWriter, r *http.Request) {
-		    // TODO: should it not be set on w?
+		func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
 			w.Header().Set("Pragma", "no-cache")
 			w.Header().Set("Expires", "0")
 			next.ServeHTTP(w, r)
-	})
+		})
 }
 
 func getOutboundIp() string {

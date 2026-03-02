@@ -1,0 +1,23 @@
+{
+	"folders": [
+		{
+			"name": "Project Root",
+			"path": "."
+		},
+		{
+			"name": "WASM Universe",
+			"path": "cmd/wasm"
+		},
+		{
+			"name": "Go Server",
+			"path": "cmd/server"
+		}
+	],
+	"settings": {
+		"go.lintOnSave": "package"
+	},
+	"launch": {},
+	"extensions": {
+		"recommendations": ["golang.go"]
+	}
+}

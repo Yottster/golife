@@ -1,34 +1,38 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <meta charset="utf-8">
-    <title>Go Wasm Game of Life</title>
-    <style>
-    body {
-    	margin:0;
-    	padding:0;
-    }
-    #canvas {
-    	display:block;
-    	overflow:hidden;
-    }
-    </style>
-    <script src="wasm_exec.js"></script>
+	<meta charset="utf-8">
+	<title>Go Wasm Game of Life</title>
+	<style>
+		body {
+			margin: 0;
+			padding: 0;
+		}
+
+		#canvas {
+			display: block;
+			overflow: hidden;
+		}
+	</style>
+	<script src="wasm_exec.js"></script>
 </head>
+
 <body>
 	<canvas id="canvas"></canvas>
 	<div id="ui-overlay">
-	    <div class="controls">
-	        <select id="mode-select">
-	            <option value="0">Game of Life</option>
-	            <option value="1">HighLife</option>
-	            <option value="2">Seeds</option>
-	            <option value="3">Brian's Brain</option>
-	            <option value="4">Star Wars</option>
-	        </select>
-	        <button id="reset-btn">Reset Universe</button>
-	    </div>
+		<div class="controls">
+			<select id="mode-select">
+				<option value="0">Game of Life</option>
+				<option value="1">HighLife</option>
+				<option value="2">Seeds</option>
+				<option value="3">Brian's Brain</option>
+				<option value="4">Star Wars</option>
+			</select>
+			<button id="reset-btn">Reset Universe</button>
+		</div>
 	</div>
-    <script type="module" src="main.js"></script>
+	<script type="module" src="main.js"></script>
 </body>
+
 </html>
