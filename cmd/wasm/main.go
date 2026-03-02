@@ -7,74 +7,83 @@ import (
 )
 
 func Render(u *Universe, dst []uint32, colors []uint32) {
-
-	// potential bce hint
+	// potential BCE hint
 	if len(colors) < 4 {
 		return
 	}
-	_ = dst[:u.width*u.height]
 
-	rowWidth := u.width + 2
-	dstIdx := 0
+	w := u.width
+	h := u.height
+	_ = dst[:w*h]
+	_ = u.cells[:(h+1)*(w+2)+w]
 
-	for y := 1; y <= u.height; y++ {
-		rowStart := y*rowWidth + 1
-		x := 1
-		for ; x <= u.width-7; x += 8 {
-			cellIdx := rowStart + x - 1
+	// Build a full 256-entry lookup so uint8 indexing is always in bounds
+	var lut [256]uint32
+	lut[0] = colors[0]
+	lut[1] = colors[1]
+	lut[2] = colors[2]
+	lut[3] = colors[3]
+
+	rowWidth := w + 2
+
+	for y := 0; y < h; y++ {
+		rowStart := (y+1)*rowWidth + 1
+		rowDst := dst[y*w : (y+1)*w : (y+1)*w]
+
+		x := 0
+		for ; x+7 < len(rowDst); x += 8 {
+			cellIdx := rowStart + x
 			chunk := *(*uint64)(unsafe.Pointer(&u.cells[cellIdx]))
 
-			dst[dstIdx] = colors[uint8(chunk)]
-			dst[dstIdx+1] = colors[uint8(chunk>>8)]
-			dst[dstIdx+2] = colors[uint8(chunk>>16)]
-			dst[dstIdx+3] = colors[uint8(chunk>>24)]
-			dst[dstIdx+4] = colors[uint8(chunk>>32)]
-			dst[dstIdx+5] = colors[uint8(chunk>>40)]
-			dst[dstIdx+6] = colors[uint8(chunk>>48)]
-			dst[dstIdx+7] = colors[uint8(chunk>>56)]
-			dstIdx += 8
+			r := rowDst[x : x+8 : x+8]
+			r[0] = lut[uint8(chunk)]
+			r[1] = lut[uint8(chunk>>8)]
+			r[2] = lut[uint8(chunk>>16)]
+			r[3] = lut[uint8(chunk>>24)]
+			r[4] = lut[uint8(chunk>>32)]
+			r[5] = lut[uint8(chunk>>40)]
+			r[6] = lut[uint8(chunk>>48)]
+			r[7] = lut[uint8(chunk>>56)]
 		}
 		// rest
-		for ; x <= u.width; x++ {
-			cellIdx := rowStart + x - 1
-			dst[dstIdx] = colors[u.cells[cellIdx]]
-			dstIdx++
+		for ; x < len(rowDst); x++ {
+			rowDst[x] = lut[u.cells[rowStart+x]]
 		}
 	}
 }
 func themeChoice(choice int) []Color {
 	choices := [][]Color{
-		[]Color{
+		{
 			// Amber
-			Color{0, 0, 0, 0xFF},
-			Color{0xFF, 0xEA, 0, 0xFF},
-			Color{0xFF, 0x66, 0, 0xFF},
-			Color{0x8B, 0, 0, 0xFF}},
-		[]Color{
+			{0, 0, 0, 0xFF},
+			{0xFF, 0xEA, 0, 0xFF},
+			{0xFF, 0x66, 0, 0xFF},
+			{0x8B, 0, 0, 0xFF}},
+		{
 			// CRT Phosphor
-			Color{0, 0, 0, 0xFF},
-			Color{0, 0xFF, 0, 0xFF},
-			Color{0, 0x88, 0, 0xFF},
-			Color{0, 0x33, 0, 0xFF}},
-		[]Color{
+			{0, 0, 0, 0xFF},
+			{0, 0xFF, 0, 0xFF},
+			{0, 0x88, 0, 0xFF},
+			{0, 0x33, 0, 0xFF}},
+		{
 			// Deep Sea
-			Color{0, 0, 0, 0xFF},
-			Color{0, 0xFF, 0xFF, 0xFF},
-			Color{0, 0x66, 0xFF, 0xFF},
-			Color{0x4B, 0, 0x82, 0xFF}},
-		[]Color{
+			{0, 0, 0, 0xFF},
+			{0, 0xFF, 0xFF, 0xFF},
+			{0, 0x66, 0xFF, 0xFF},
+			{0x4B, 0, 0x82, 0xFF}},
+		{
 			// star wars
-			Color{0, 0, 0, 0xFF},
-			Color{0, 0xFF, 0xFF, 0xFF},
-			Color{0xFF, 0, 0x55, 0xFF},
-			Color{0x33, 0, 0x33, 0xFF},
+			{0, 0, 0, 0xFF},
+			{0, 0xFF, 0xFF, 0xFF},
+			{0xFF, 0, 0x55, 0xFF},
+			{0x33, 0, 0x33, 0xFF},
 		},
 	}
 	return choices[choice%len(choices)]
 }
 
 // TODO: We should remove this global
-var rulesTable []uint8
+var rulesTable [64]uint8
 
 func main() {
 	window := js.Global()
@@ -131,7 +140,7 @@ func main() {
 	var setMode js.Func = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		mode := args[0].Int()
 
-		rulesets := []func() []uint8{
+		rulesets := []func() [64]uint8{
 			initGameOfLifeRules,
 			initHighLife,
 			initSeeds,
